@@ -129,6 +129,9 @@ src/main/java/edu/eci/arsw/blueprints
 - Implementa un nuevo repositorio `PostgresBlueprintPersistence` que reemplace la versión en memoria.  
 - Mantén el contrato de la interfaz `BlueprintPersistence`.  
 
+    Resolucion del problema:
+      Se instaló PostgreSQL localmente, donde luego se creó la ase de datos llamada 'blueprintsdb' y se implementó PostgresBlueprintPersistence usando JdbcTemplate y almacenando los puntos como JSONB. Se configuraron perfiles Spring (postgres/memory) para poder cambiar entre implementaciones.
+
 ### 3. Buenas prácticas de API REST
 - Cambia el path base de los controladores a `/api/v1/blueprints`.  
 - Usa **códigos HTTP** correctos:  
@@ -150,16 +153,146 @@ src/main/java/edu/eci/arsw/blueprints
   }
   ```
 
+    Para resolver este ejercicio se realizaron los siguientes camios:
+
+      Se modificó el @RequestMapping a /api/v1/blueprints, se implementó el record ApiResponse para uniformar respuestas, y se ajustaron los códigos HTTP según cada operación.
+
+    1. Path base: Se cambió @RequestMapping("/blueprints") a @RequestMapping("/api/v1/blueprints").
+
+    2. Clase ApiResponse: Se creó el record ApiResponse<T> con code, message y data, más métodos estáticos success, successWithoutData y error.
+
+    3. Códigos HTTP:
+
+            200 OK para GET exitosos.
+
+            201 Created para POST exitoso.
+
+            202 Accepted para PUT exitoso.
+
+            400 Bad Request para datos inválidos.
+
+            404 Not Found para recursos inexistentes.
+
+            409 Conflict para intento de crear recurso duplicado.
+
+    4. Validaciones: Se agregaron validaciones con @Valid y @NotBlank en los DTOs.
+
 ### 4. OpenAPI / Swagger
 - Configura `springdoc-openapi` en el proyecto.  
 - Expón documentación automática en `/swagger-ui.html`.  
 - Anota endpoints con `@Operation` y `@ApiResponse`.
+
+  Se agregó la dependencia springdoc-openapi, se configuró en application.properties y se anotó el controlador con @Tag, @Operation, @ApiResponses y @Parameter para documentar la API.
+
+  1. Dependencia: Se verificó la dependencia springdoc-openapi-starter-webmvc-ui en el pom.xml.
+
+  2. Configuración: En application.properties se definieron:
+
+        springdoc.api-docs.path=/api-docs
+
+        springdoc.swagger-ui.path=/swagger-ui.html
+
+  3. Anotaciones en el controlador:
+
+      @Tag(name = "Blueprints", description = "...") para agrupar endpoints.
+
+      @Operation para describir cada método.
+
+      @ApiResponses con @ApiResponse para documentar códigos de respuesta.
+
+      @Parameter para documentar parámetros de path.
+
+  4. Acceso: La documentación está disponible en http://localhost:8080/swagger-ui.html y el OpenAPI JSON en http://localhost:8080/api-docs.
 
 ### 5. Filtros de *Blueprints*
 - Implementa filtros:
   - **RedundancyFilter**: elimina puntos duplicados consecutivos.  
   - **UndersamplingFilter**: conserva 1 de cada 2 puntos.  
 - Activa los filtros mediante perfiles de Spring (`redundancy`, `undersampling`).  
+
+
+  Se implementaron los filtros como componentes Spring con perfiles. Se modificó BlueprintsServices para aplicar el filtro en las consultas. En application.properties se activan múltiples perfiles separados por comas (ej: postgres,redundancy).
+
+  1. Interfaz BlueprintsFilter: Define el método Blueprint apply(Blueprint bp).
+
+  2. RedundancyFilter: Con perfil "redundancy". Elimina puntos consecutivos duplicados comparando coordenadas.
+
+  3. UndersamplingFilter: Con perfil "undersampling". Conserva puntos en índices pares (0,2,4...).
+
+  4. IdentityFilter: Con perfil "identity". Devuelve el blueprint sin cambios (fallback).
+
+  5. BlueprintsServices: Inyecta el filtro y lo aplica en getAllBlueprints, getBlueprintsByAuthor y getBlueprint.
+
+  6. Configuración de perfiles: En application.properties se definen perfiles múltiples:
+
+      spring.profiles.active=postgres,redundancy
+
+      Esto activa PostgreSQL y el filtro de redundancia simultáneamente.
+
+  7. Pruebas: Se crearon blueprints con puntos duplicados y se verificó que el filtro actúa correctamente.
+
+
+## ----------------
+### Guia de uso
+Requisitos previos
+Java 21
+
+Maven
+
+PostgreSQL (con BD blueprintsdb creada)
+
+Configuración inicial
+Crear la base de datos en PostgreSQL:
+
+sql
+CREATE DATABASE blueprintsdb;
+Crear la tabla blueprint (si no se usa schema.sql automático):
+
+sql
+CREATE TABLE IF NOT EXISTS blueprint (
+    author VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    points JSONB NOT NULL,
+    PRIMARY KEY (author, name)
+);
+Configurar application.properties con tus credenciales:
+
+properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/blueprintsdb
+spring.datasource.username=postgres
+spring.datasource.password=TU_CONTRASEÑA
+spring.profiles.active=postgres,redundancy  # O el filtro deseado
+Compilar y ejecutar
+bash
+# Compilar (sin tests para evitar errores)
+mvn clean install -DskipTests
+
+# Ejecutar la aplicación
+mvn spring-boot:run
+
+Endpoints disponibles
+
+Método	URL	Descripción
+
+GET	/api/v1/blueprints	Obtener todos los blueprints
+
+GET	/api/v1/blueprints/{author}	Obtener blueprints por autor
+
+GET	/api/v1/blueprints/{author}/{bpname}	Obtener blueprint específico
+
+POST	/api/v1/blueprints	Crear nuevo blueprint
+
+PUT	/api/v1/blueprints/{author}/{bpname}/points	Agregar punto a blueprint
+
+URLs importantes
+Recurso	URL
+
+API Base	http://localhost:8080/api/v1/blueprints
+
+Swagger UI	http://localhost:8080/swagger-ui.html
+
+OpenAPI JSON	http://localhost:8080/api-docs
+## -----------------
 
 ---
 

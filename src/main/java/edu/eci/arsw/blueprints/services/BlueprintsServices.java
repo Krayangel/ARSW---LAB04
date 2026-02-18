@@ -1,6 +1,7 @@
 package edu.eci.arsw.blueprints.services;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -38,14 +39,18 @@ public class BlueprintsServices {
     }
 
     public Set<Blueprint> getAllBlueprints() {
-        return persistence.getAllBlueprints();
+        return persistence.getAllBlueprints().stream()
+                .map(filter::apply)
+                .collect(Collectors.toSet());
     }
 
     public Set<Blueprint> getBlueprintsByAuthor(String author) throws BlueprintNotFoundException {
         if (author == null || author.trim().isEmpty()) {
             throw new BlueprintNotFoundException("El autor no puede estar vacío");
         }
-        return persistence.getBlueprintsByAuthor(author);
+        return persistence.getBlueprintsByAuthor(author).stream()
+                .map(filter::apply)
+                .collect(Collectors.toSet());
     }
 
     public Blueprint getBlueprint(String author, String name) throws BlueprintNotFoundException {
