@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+@SuppressWarnings("FieldMayBeFinal")
 
 public class Blueprint {
-
     private String author;
     private String name;
     private final List<Point> points = new ArrayList<>();
@@ -17,11 +17,21 @@ public class Blueprint {
         if (pts != null) points.addAll(pts);
     }
 
-    public String getAuthor() { return author; }
-    public String getName() { return name; }
-    public List<Point> getPoints() { return Collections.unmodifiableList(points); }
+    public String getAuthor() { 
+        return author; 
+    }
 
-    public void addPoint(Point p) { points.add(p); }
+    public String getName() { 
+        return name; 
+    }
+
+    public List<Point> getPoints() { 
+        return Collections.unmodifiableList(points); 
+    }
+
+    public void addPoint(Point p) { 
+        points.add(p); 
+    }
 
     @Override
     public boolean equals(Object o) {

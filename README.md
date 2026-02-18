@@ -4,7 +4,7 @@
 ---
 
 ## 📋 Requisitos
-- Java 21
+- Java 21 
 - Maven 3.9+
 
 ## ▶️ Ejecución del proyecto
@@ -51,8 +51,78 @@ src/main/java/edu/eci/arsw/blueprints
 
 ### 1. Familiarización con el código base
 - Revisa el paquete `model` con las clases `Blueprint` y `Point`.  
+
+    Respuesta: La clase de point es un record, es inmutable y que presenta un par de coordenadas, una X y otra Y, la clase de BBlueprint modela un plano con un autor, nomre, y analisis de puntos, presenta metodos para acceder a sus atribbutos y agregar nuevos puntos.
+
+    Record : es un tipo especial de clase diseñado para almacenar datos de forma inmutable de manera concisa y segura.
+
+    Point tiene:
+
+      - Constructor canónico con los parámetros int x, int y.
+      - Métodos de acceso x() e y().
+      - Implementaciones de equals(), hashCode() y toString() basadas en los componentes.
+
+    Bleprint tiene:
+      - Atributos: author (String), name (String) y una lista points de tipo List<Point> inicializada como ArrayList vacío.
+      - Constructor: recibe autor, nombre y una lista de puntos; si la lista no es null, agrega todos los puntos a la lista interna. Esto permite crear un Blueprint con puntos iniciales.
+      - Métodos de acceso: getAuthor(), getName() y getPoints() (este último devuelve una vista no modificable de la lista para mantener la encapsulación).
+      - Método addPoint(Point p): agrega un nuevo punto a la lista interna.
+      - Métodos equals() y hashCode(): están basados únicamente en author y name, lo que significa que dos Blueprint se consideran iguales si tienen el mismo autor y nombre, independientemente de los puntos. Esto es clave para la persistencia en un mapa donde la clave es la combinación autor:nombre.
+
 - Entiende la capa `persistence` con `InMemoryBlueprintPersistence`.  
+
+    InMemoryBlueprintPersistence es una implementación en memoria de la interfaz BlueprintPersistence, esta utiliza un ConcurrentHashMap para almacenar los blueprints con una clave compuesta "autor:nombre", incluye datos de ejemplo precargados y proporciona operaciones CRUD básicas, lanzando excepciones personalizadas cuando un blueprint no existe o ya está presente.
+
+    Este usa:
+
+      Interfaz BlueprintPersistence
+      Define los contratos que debe cumplir cualquier implementación de persistencia:
+      - saveBlueprint(Blueprint bp): guarda un nuevo blueprint, lanza BlueprintPersistenceException si ya existe.
+      - getBlueprint(String author, String name): obtiene un blueprint por autor y nombre, lanza BlueprintNotFoundException si no existe.
+      - getBlueprintsByAuthor(String author): devuelve un Set de blueprints de un autor, lanza excepción si no hay ninguno.
+      - getAllBlueprints(): devuelve todos los blueprints almacenados.
+      - addPoint(String author, String name, int x, int y): agrega un punto a un blueprint existente.
+
+      InMemoryBlueprintPersistence
+      Está anotada con @Repository, lo que la convierte en un bean de Spring y permite inyectarla en servicios.
+
+      * Estructura de almacenamiento: Map<String, Blueprint> blueprints = new ConcurrentHashMap<>() garantiza hilo-safety para operaciones concurrentes.
+      - Método auxiliar keyOf: genera la clave en formato "autor:nombre".
+      
+      - Constructor: precarga tres blueprints de ejemplo:
+        - john:house con cuatro puntos.
+        - john:garage con tres puntos.
+        - jane:garden con tres puntos.
+
+      - Implementación de métodos:
+        - saveBlueprint: verifica si la clave ya existe; si es así, lanza excepción; de lo contrario, guarda.
+        - getBlueprint: obtiene del mapa; si es null, lanza BlueprintNotFoundException.
+        - getBlueprintsByAuthor: filtra por autor usando un stream; si el conjunto resultante está vacío, lanza excepción.
+        - getAllBlueprints: retorna una copia en un nuevo HashSet.
+        - addPoint: obtiene el blueprint (puede lanzar excepción) y luego le agrega el punto.
+
 - Analiza la capa `services` (`BlueprintsServices`) y el controlador `BlueprintsAPIController`.
+
+    BlueprintsServices es la fachada de lógica de negocio; inyecta la persistencia y un filtro (BlueprintsFilter) para aplicar transformaciones a los blueprints al consultarlos. El controlador expone endpoints REST que delegan en el servicio, manejan excepciones y devuelven respuestas HTTP adecuadas (200, 201, 404, 403, etc.). Juntos forman la API REST completa para gestionar blueprints.
+
+    Datos:
+
+      - Anotación: @Service – indica que es un bean de servicio de Spring.
+      - Dependencias: recibe por constructor BlueprintPersistence y BlueprintsFilter. Esto sigue el principio de inyección de dependencias, facilitando pruebas y desacoplamiento.
+
+    Métodos:
+    - addNewBlueprint(Blueprint bp): simplemente llama a persistence.saveBlueprint(bp). Puede lanzar BlueprintPersistenceException.
+    - getAllBlueprints(): retorna todos los blueprints sin aplicar filtro (importante: según el código actual, no filtra; solo llama a persistencia).
+    - getBlueprintsByAuthor(String author): retorna los blueprints del autor sin filtrar (solo persistencia).
+    - getBlueprint(String author, String name): obtiene el blueprint de persistencia y luego aplica el filtro (filter.apply(bp)) antes de devolverlo. Esto permite modificar la lista de puntos (ej. eliminar redundancias, submuestrear) según el filtro activo.
+    - addPoint(String author, String name, int x, int y): delega en persistencia para agregar un punto.
+
+
+    BlueprintsAPIController:
+
+      - Anotaciones: @RestController y @RequestMapping("/blueprints").
+      - Dependencia: recibe BlueprintsServices por constructor.
+      - Manejo de excepciones: cada método captura las excepciones específicas y devuelve un ResponseEntity con el código HTTP adecuado y un cuerpo JSON con mensaje de error.
 
 ### 2. Migración a persistencia en PostgreSQL
 - Configura una base de datos PostgreSQL (puedes usar Docker).  

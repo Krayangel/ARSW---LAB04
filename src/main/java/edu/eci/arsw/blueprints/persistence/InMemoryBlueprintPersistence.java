@@ -1,14 +1,20 @@
 package edu.eci.arsw.blueprints.persistence;
 
-import edu.eci.arsw.blueprints.model.Blueprint;
-import edu.eci.arsw.blueprints.model.Point;
-import org.springframework.stereotype.Repository;
-
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Repository;
+
+import edu.eci.arsw.blueprints.model.Blueprint;
+import edu.eci.arsw.blueprints.model.Point;
+
 @Repository
+@Profile("memory")
 public class InMemoryBlueprintPersistence implements BlueprintPersistence {
 
     private final Map<String, Blueprint> blueprints = new ConcurrentHashMap<>();

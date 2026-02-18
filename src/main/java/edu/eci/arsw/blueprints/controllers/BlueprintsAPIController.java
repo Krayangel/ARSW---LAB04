@@ -1,5 +1,18 @@
 package edu.eci.arsw.blueprints.controllers;
 
+import java.util.Map;
+import java.util.Set;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import edu.eci.arsw.blueprints.model.Blueprint;
 import edu.eci.arsw.blueprints.model.Point;
 import edu.eci.arsw.blueprints.persistence.BlueprintNotFoundException;
@@ -7,12 +20,6 @@ import edu.eci.arsw.blueprints.persistence.BlueprintPersistenceException;
 import edu.eci.arsw.blueprints.services.BlueprintsServices;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/blueprints")
@@ -63,7 +70,7 @@ public class BlueprintsAPIController {
     // PUT /blueprints/{author}/{bpname}/points
     @PutMapping("/{author}/{bpname}/points")
     public ResponseEntity<?> addPoint(@PathVariable String author, @PathVariable String bpname,
-                                      @RequestBody Point p) {
+                                    @RequestBody Point p) {
         try {
             services.addPoint(author, bpname, p.x(), p.y());
             return ResponseEntity.status(HttpStatus.ACCEPTED).build();
